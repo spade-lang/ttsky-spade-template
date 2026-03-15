@@ -13,6 +13,16 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Setup Swim
+        run: |
+          wget https://gitlab.com/api/v4/projects/33589000/jobs/artifacts/main/download?job=build:static -O swim.zip
+          unzip swim.zip
+
+      - name: Build Spade
+        run: |
+          ./swim build
+          cp build/spade.sv src/project.sv
+
       - name: Build GDS
         uses: TinyTapeout/tt-gds-action@ttsky26a
         with:
@@ -34,8 +44,31 @@ jobs:
         with:
           submodules: recursive
 
-      - name: GL test
+      - name: Setup Swim
+        run: |
+          wget https://gitlab.com/api/v4/projects/33589000/jobs/artifacts/main/download?job=build:static -O swim.zip
+          unzip swim.zip
+
+      - name: GL test setup
         uses: TinyTapeout/tt-gds-action/gl_test@ttsky26a
+
+      - name: Patch gate_level_netlist.v
+        run: |
+          pip install pyyaml
+          python3 patch_gate_level.py
+
+      - name: GL test
+        run: |
+          ./swim test --override-verilog test/gate_sim_defines.v --override-verilog ${PDK_ROOT}/sky130A/libs.ref/sky130_fd_sc_hd/verilog/primitives.v --override-verilog ${PDK_ROOT}/sky130A/libs.ref/sky130_fd_sc_hd/verilog/sky130_fd_sc_hd.v --override-verilog test/patched.v gatelevel
+
+      - name: upload waveform and test results
+        if: success() || failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: |
+            build/**/*.fst
+          
 
   viewer:
     needs: gds

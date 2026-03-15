@@ -1,0 +1,50 @@
+use std::io::rising_edge;
+use std::cdc::sync2_bool;
+
+entity design(clk: clock, rst: bool, ui_in: [bool; 8]) -> uint<8> {
+    let up = inst rising_edge(clk, inst sync2_bool(clk, ui_in[0]));
+    let down = inst rising_edge(clk, inst sync2_bool(clk, ui_in[1]));
+
+    reg(clk) value reset(rst: 0) = if up {
+        value +. 1
+    } else if down {
+        value -. 1
+    } else {
+        value
+    };
+    value
+}
+
+
+/// This is the top module (main function) of TinyTapeout, before submission,
+/// rename it to tt_um_<your username> or something else unique. Make sure to
+/// also update the info.yaml top_module field
+/// 
+/// Depending on if your inputs are individual bits or binary numbers, you may want to change
+/// between `[bool; 8]` and `uint<8>` for the ui/o signals.
+/// 
+/// Other than that, you most likely don't want to change this module at all, make any changes
+/// you may want to do to `top` instead
+#[no_mangle(all)]
+entity tt_um_example(
+    clk: clock,
+    rst_n: bool,
+    ui_in: [bool; 8],
+    uo_out: inv& uint<8>,
+    uio_in: uint<8>,
+    uio_out: inv& [bool; 8],
+    uio_oe: inv& [bool; 8],
+    ena: bool,
+) {
+    // Spade uses active high reset, so we'll invert the tt reset
+    let rst = !rst_n;
+    // If you want to use the bidirectional IO, you'll want to change these
+    set uio_out = &[false; 8];
+    set uio_oe = &[false; 8];
+
+
+    // Put your code to generate the output here
+    let output = inst design(clk, rst, ui_in);
+
+    set uo_out = &output;
+}

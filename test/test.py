@@ -1,40 +1,66 @@
-# SPDX-FileCopyrightText: © 2024 Tiny Tapeout
-# SPDX-License-Identifier: Apache-2.0
+# top = tt_um_example
 
 import cocotb
+from spade import SpadeExt
 from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles
+from cocotb.triggers import FallingEdge
 
 
+# Smoke test for the whole project. Since it is called _gatelevel it will be tested
+# both pre- and post synthesis.
 @cocotb.test()
-async def test_project(dut):
-    dut._log.info("Start")
+async def test_project_gatelevel(dut):
+    # Set up the Spade integration and start a clock
+    s = SpadeExt(dut)
 
-    # Set the clock period to 10 us (100 KHz)
-    clock = Clock(dut.clk, 10, unit="us")
-    cocotb.start_soon(clock.start())
+    clk = dut.clk
+    await cocotb.start(Clock(clk, period=10, units='ns').start())
 
-    # Reset
-    dut._log.info("Reset")
-    dut.ena.value = 1
-    dut.ui_in.value = 0
-    dut.uio_in.value = 0
-    dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 10)
-    dut.rst_n.value = 1
+    # Avoid issues on the first clock edge by waiting one clock cycle
+    await FallingEdge(clk)
 
-    dut._log.info("Test project behavior")
+    # Since this is a gate level test, we have to set VGND and VPWR if those exist
+    if hasattr(dut, "VGND"):
+        dut.VGND = 0
+        dut.VPWR = 1
 
-    # Set the input values you want to test
-    dut.ui_in.value = 20
-    dut.uio_in.value = 30
+    # Initial input values
+    s.i.ui_in = "[false, false, false, false,  false, false, false, false]"
+    # Enabble needs to be set for simulation to not be all X
+    s.i.ena = True
 
-    # Wait for one clock cycle to see the output values
-    await ClockCycles(dut.clk, 1)
+    # Reset. For a few cycles to let the synchronizers settle
+    s.i.rst_n = False
+    [await FallingEdge(clk) for _ in range(0, 10)]
+    s.i.rst_n = True
+    await FallingEdge(clk)
 
-    # The following assersion is just an example of how to check the output values.
-    # Change it to match the actual expected output of your module:
-    assert dut.uo_out.value == 50
 
-    # Keep testing the module by changing the input values, waiting for
-    # one or more clock cycles, and asserting the expected output values.
+    # Start of actual tests
+
+    # Without input, we expect the input to be 0
+    for _ in range(0, 5):
+        s.i.uo_out.assert_eq("&0")
+        await FallingEdge(clk)
+
+    # Turn on up
+    s.i.ui_in = "[true, false, false, false,  false, false, false, false]"
+
+    # Wait for the synchronization
+    for _ in range(0, 3):
+        await FallingEdge(clk)
+
+    # Since we check for rising edge, we expect the output to be 1 until something changes
+    for _ in range(0, 5):
+        s.i.uo_out.assert_eq("&1")
+        await FallingEdge(clk)
+
+    # Without another input, we expect the value to still remain
+    s.i.ui_in = "[false, false, false, false,  false, false, false, false]"
+    for _ in range(0, 5):
+        s.i.uo_out.assert_eq("&1")
+        await FallingEdge(clk)
+
+    # And so on...
+    
+
