@@ -1,14 +1,12 @@
 ![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg) ![](../../workflows/fpga/badge.svg)
 
-# Tiny Tapeout Verilog Project Template
-
-- [Read the documentation for project](docs/info.md)
+# Tiny Tapeout Spade Project Template
 
 ## What is Tiny Tapeout?
 
-Tiny Tapeout is an educational project that aims to make it easier and cheaper than ever to get your digital and analog designs manufactured on a real chip. This is an unofficial TinyTapeout template for [Spade](https://spade-lang.org/)
+Tiny Tapeout is an educational project that aims to make it easier and cheaper than ever to get your digital and analog designs manufactured on a real chip. This is a TinyTapeout template for [Spade](https://spade-lang.org/)
 
-To learn more and get started, visit https://tinytapeout.com.
+To learn more and get started with TinyTapeout, visit https://tinytapeout.com. To get started with Spade, visit https://spade-lang.org.
 
 ## Set up your Project project
 
